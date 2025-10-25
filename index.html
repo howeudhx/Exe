@@ -1,1 +1,479 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <title>Secured Content Access — Blur Flow</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root {
+      --bg-dark: #0a0a0f;
+      --glass-bg: rgba(20, 20, 30, 0.65);
+      --glass-stroke: rgba(255,255,255,0.12);
+      --text: #f5f5f7;
+      --muted: #a1a1b5;
+      /* default purple accents */
+      --accent-1: #6d28d9;
+      --accent-2: #8b5cf6;
+      --blob-a: #8b5cf6;
+      --blob-b: #6d28d9;
+      --blob-c: #a78bfa;
+    }
 
+    /* เมื่อเป็นโหมด encrypted จะเปลี่ยนตัวแปรสีเป็นแดงเข้ม */
+    :root.encrypted {
+      --accent-1: #7f1d1d;
+      --accent-2: #b91c1c;
+      --blob-a: #7f1d1d;
+      --blob-b: #991b1b;
+      --blob-c: #b91c1c;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: "Inter", "Segoe UI", sans-serif;
+      color: var(--text);
+      background: radial-gradient(1200px 800px at 20% 20%, #3b0d6d, transparent 60%),
+                  radial-gradient(1200px 800px at 80% 70%, #5b21b6, transparent 60%),
+                  linear-gradient(180deg, #0a0a0f, #1a0f2e);
+      overflow: hidden;
+    }
+
+    /* เมื่อ root มี class encrypted ให้เปลี่ยน gradient เป็นแดงเข้ม */
+    :root.encrypted html, :root.encrypted body,
+    html.encrypted, body.encrypted {
+      background: radial-gradient(1200px 800px at 20% 20%, #4a0b0b, transparent 60%),
+                  radial-gradient(1200px 800px at 80% 70%, #6b0e0e, transparent 60%),
+                  linear-gradient(180deg, #080303, #2b0a0a);
+    }
+
+    .ambain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+      filter: blur(90px) saturate(150%);
+      mix-blend-mode: screen;
+    }
+
+    /* visible blobs — มีขนาด สี และ animation ต่างกัน */
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.75;
+      pointer-events: none;
+      filter: blur(18px);
+    }
+
+    .blob.one {
+      width: 600px;
+      height: 600px;
+      left: -10vmax;
+      top: -6vmax;
+      background: radial-gradient(circle at 30% 30%, var(--blob-a), transparent 60%);
+      animation: floatRandom 12s ease-in-out infinite alternate;
+    }
+    .blob.two {
+      width: 520px;
+      height: 520px;
+      right: -8vmax;
+      top: 30vh;
+      background: radial-gradient(circle at 70% 30%, var(--blob-b), transparent 60%);
+      animation: floatRandom2 14s ease-in-out infinite alternate;
+    }
+    .blob.three {
+      width: 700px;
+      height: 700px;
+      left: 20vw;
+      bottom: -12vmax;
+      background: radial-gradient(circle at 50% 50%, var(--blob-c), transparent 65%);
+      animation: floatRandom3 16s ease-in-out infinite alternate;
+    }
+
+    @keyframes floatRandom {
+      0%   { transform: translate(-10%, -5%) scale(1); }
+      25%  { transform: translate(20%, 10%) scale(1.18); }
+      50%  { transform: translate(-15%, 25%) scale(0.95); }
+      75%  { transform: translate(10%, -20%) scale(1.1); }
+      100% { transform: translate(-10%, -5%) scale(1); }
+    }
+    @keyframes floatRandom2 {
+      0%   { transform: translate(5%, -8%) scale(1); }
+      25%  { transform: translate(-25%, 12%) scale(1.15); }
+      50%  { transform: translate(18%, 20%) scale(0.9); }
+      75%  { transform: translate(-15%, -12%) scale(1.1); }
+      100% { transform: translate(5%, -8%) scale(1); }
+    }
+    @keyframes floatRandom3 {
+      0%   { transform: translate(-6%, 10%) scale(1); }
+      25%  { transform: translate(30%, -8%) scale(1.05); }
+      50%  { transform: translate(-20%, 15%) scale(1.2); }
+      75%  { transform: translate(10%, -25%) scale(0.95); }
+      100% { transform: translate(-6%, 10%) scale(1); }
+    }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: grid;
+      place-items: center;
+      padding: 16px;
+    }
+
+    #permission-overlay {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: rgba(10, 10, 14, 0.65);
+      backdrop-filter: blur(40px);
+      z-index: 2;
+      transition: opacity 0.5s ease;
+    }
+
+    .card {
+      width: min(420px, 92vw);
+      padding: 24px;
+      border-radius: 22px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(34px) saturate(180%);
+      border: 1px solid var(--glass-stroke);
+      box-shadow: 0 40px 100px rgba(0,0,0,0.7),
+                  inset 0 1px 0 rgba(255,255,255,0.05);
+      position: relative;
+    }
+
+    .title { font-weight: 700; font-size: 1.25rem; margin-bottom: 10px; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; }
+
+    .field { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    input[type="password"] {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(30,30,40,0.6);
+      color: var(--text);
+      outline: none;
+      font-size: 1rem;
+    }
+    input[type="password"]:focus {
+      border-color: rgba(167, 139, 250, 0.9);
+      box-shadow: 0 0 0 6px rgba(167, 139, 250, 0.18);
+    }
+
+    .btn {
+      padding: 12px 18px;
+      border: 0;
+      border-radius: 12px;
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+      box-shadow: 0 10px 25px rgba(139, 92, 246, 0.45);
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+
+    #wrong-key-popup {
+      position: absolute;
+      top: -50px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      background: rgba(255, 80, 80, 0.15);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.25);
+      color: #ff8a8a;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 12px;
+      opacity: 0;
+      transition: all 0.4s ease;
+      pointer-events: none;
+    }
+    #wrong-key-popup.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    #main-content {
+      display: none;
+      width: min(700px, 94vw);
+      padding: 24px;
+      border-radius: 22px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(34px) saturate(180%);
+      border: 1px solid var(--glass-stroke);
+      box-shadow: 0 40px 100px rgba(0,0,0,0.7),
+                  inset 0 1px 0 rgba(255,255,255,0.05);
+      animation: fadeIn 600ms ease forwards;
+      position: relative;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: white;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: 0.2s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.18); }
+
+    .content-box {
+      margin-top: 12px;
+      padding: 18px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-family: Consolas, "Courier New", monospace;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* --- UI สำรองที่จะโผล่เมื่อ <body> หายไป --- */
+    .fallback-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10,8,8,0.95);
+      color: var(--text);
+      backdrop-filter: blur(6px);
+      flex-direction: column;
+      gap: 18px;
+      padding: 24px;
+    }
+    .fallback-card {
+      width: min(720px, 94vw);
+      border-radius: 14px;
+      padding: 18px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+      text-align: center;
+    }
+    .fallback-key {
+      font-family: Consolas, monospace;
+      padding: 12px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 10px;
+      user-select: all;
+      word-break: break-all;
+      margin-top: 12px;
+    }
+    .fallback-actions { display:flex; gap:10px; justify-content:center; margin-top:12px; }
+
+    /* Notification ถาวรแบบเบลอ */
+    .kawnew-notify {
+      position: fixed;
+      left: 12px;
+      bottom: 12px;
+      z-index: 100000;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.12);
+      font-weight: 700;
+      color: var(--text);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
+    }
+  </style>
+</head>
+<body>
+  <div class="ambain" aria-hidden="true">
+    <div class="blob one"></div>
+    <div class="blob two"></div>
+    <div class="blob three"></div>
+  </div>
+
+  <div id="permission-overlay">
+    <div class="card">
+      <div id="wrong-key-popup">Its Wrong bitch</div>
+      <div class="title">Encrypted files access</div>
+      <div class="subtitle">It need KEY 🔑</div>
+      <div class="field">
+        <input type="password" id="access-key" placeholder="Enter Access Key" />
+        <button class="btn" id="access-btn">Access!</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div id="main-content">
+      <button id="copy-btn" class="copy-btn">🗒️</button>
+      <div id="protected-text" class="content-box">Loading...</div>
+    </div>
+  </div>
+
+  <script>
+    // ======= CONFIG =========
+    const CORRECT_KEY = "Kawnew";
+    const ORIGINAL_TEXT = "ok.";
+    const ENCRYPTED_CONTENT = btoa(ORIGINAL_TEXT);
+    let verified = false;
+    let encryptedMode = false; // true เมื่อโหมด encrypted ถูกเปิด (ex: body หาย หรือ overlay ถูกลบ)
+
+    // DOM refs
+    const accessBtn = document.getElementById("access-btn");
+    const overlay = document.getElementById("permission-overlay");
+    const mainContent = document.getElementById("main-content");
+    const protectedText = document.getElementById("protected-text");
+    const popup = document.getElementById("wrong-key-popup");
+
+    accessBtn.addEventListener("click", checkKey);
+
+    function checkKey() {
+      const key = document.getElementById("access-key").value.trim();
+      if (key === CORRECT_KEY) {
+        verified = true;
+        overlay.style.opacity = "0";
+        setTimeout(() => { overlay.style.display = "none"; }, 500);
+        showContent(false);
+      } else {
+        popup.classList.add("show");
+        setTimeout(() => {
+          popup.classList.remove("show");
+          document.getElementById("access-key").value = "";
+        }, 2000);
+      }
+    }
+
+    function showContent(encrypted = false) {
+      mainContent.style.display = "block";
+      protectedText.textContent = encrypted ? ENCRYPTED_CONTENT : ORIGINAL_TEXT;
+    }
+
+    document.getElementById("copy-btn").addEventListener("click", () => {
+      const text = document.getElementById("protected-text").textContent;
+      navigator.clipboard.writeText(text)
+        .then(() => alert("คัดลอกแล้ว ✅"))
+        .catch(() => alert("ไม่สามารถคัดลอกได้"));
+    });
+
+    // ===================== Anti-tamper / body-missing detection =====================
+    // ฟังก์ชันสร้าง fallback UI (เมื่อ <body> หายไป)
+    function createFallbackOverlay() {
+      if (document.getElementById('kawnew-fallback')) return; // ป้องกันสร้างซ้ำ
+
+      // เปิดโหมด encrypted บน root เพื่อเปลี่ยนสี
+      document.documentElement.classList.add('encrypted');
+
+      // สร้าง overlay สำรอง
+      const ov = document.createElement('div');
+      ov.id = 'kawnew-fallback';
+      ov.className = 'fallback-overlay';
+      ov.innerHTML = `
+        <div class="fallback-card">
+          <div style="font-size:18px;font-weight:800;">🔐 Kawnew Encrypted Enable</div>
+          <div style="margin-top:8px;color:var(--muted);">ระบบตรวจพบการลบ/ซ่อนเนื้อหา — สุ่มรหัสที่ถูกเข้ารหัสให้คุณคัดลอก</div>
+          <div id="kawnew-rand" class="fallback-key">Generating...</div>
+          <div class="fallback-actions">
+            <button id="kawnew-copy" class="btn">คัดลอกรหัส</button>
+            <button id="kawnew-new" class="btn" style="background:linear-gradient(90deg,#444,#666)">สร้างใหม่</button>
+          </div>
+        </div>
+      `;
+      document.body ? document.body.appendChild(ov) : document.documentElement.appendChild(ov);
+
+      // สร้าง notification ถาวรแบบเบลอ
+      if (!document.getElementById('kawnew-notify')) {
+        const n = document.createElement('div');
+        n.className = 'kawnew-notify';
+        n.id = 'kawnew-notify';
+        n.textContent = 'Kawnew Encrypted Enable';
+        document.body ? document.body.appendChild(n) : document.documentElement.appendChild(n);
+      }
+
+      // สุ่มและแสดงรหัส
+      const keyEl = document.getElementById('kawnew-rand');
+      function makeEncryptedRandom() {
+        // สร้าง random bytes แล้วแปลงเป็น hex
+        const arr = new Uint8Array(32);
+        crypto.getRandomValues(arr);
+        let hex = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+        // เข้ารหัสแบบง่าย: base64 ของ hex (นับเป็น "encrypted" ที่สุ่ม)
+        const encoded = btoa(hex);
+        keyEl.textContent = encoded;
+        return encoded;
+      }
+      let current = makeEncryptedRandom();
+
+      // ปุ่มคัดลอก
+      document.getElementById('kawnew-copy').onclick = () => {
+        navigator.clipboard.writeText(document.getElementById('kawnew-rand').textContent)
+          .then(() => alert('รหัสถูกคัดลอก ✅'))
+          .catch(() => alert('ไม่สามารถคัดลอกได้'));
+      };
+      // ปุ่มสร้างใหม่
+      document.getElementById('kawnew-new').onclick = () => {
+        current = makeEncryptedRandom();
+      };
+    }
+
+    // Observer เฝ้าดูการเปลี่ยนแปลงบน documentElement (เพื่อตรวจว่า <body> ถูกลบ)
+    const rootObserver = new MutationObserver((mutations) => {
+      // ถ้า body ไม่มี หรือ overlay ถูกเอาออกขณะที่ยังไม่ verified -> ให้ fallback overlay แสดง และเปลี่ยน theme
+      const hasBody = !!document.body;
+      const overlayEl = document.getElementById('permission-overlay');
+      if ((!hasBody || (overlayEl && (overlayEl.style.display === 'none' || overlayEl.style.visibility === 'hidden'))) && !verified) {
+        encryptedMode = true;
+        // เปลี่ยนสี theme เป็น encrypted (แดง)
+        document.documentElement.classList.add('encrypted');
+        // แสดง fallback UI (ถ้า body ถูกเอาออก เรา append ไปที่ documentElement แทน)
+        try { createFallbackOverlay(); } catch (e) { console.error('fallback create failed', e); }
+      }
+    });
+
+    // เริ่ม observe ทั้ง childList และ attributes เผื่อ element ถูกซ่อน/เปลี่ยน style
+    rootObserver.observe(document.documentElement, { childList: true, subtree: true, attributes: true });
+
+    // นอกจากนี้ สร้างตัวตรวจอีกตัวเพื่อถ้า overlay ถูกลบโดยตรง ให้เปิด fallback
+    const overlayObserver = new MutationObserver(() => {
+      const overlayEl = document.getElementById('permission-overlay');
+      if (!overlayEl && !verified) {
+        encryptedMode = true;
+        document.documentElement.classList.add('encrypted');
+        createFallbackOverlay();
+      }
+    });
+    overlayObserver.observe(document.documentElement, { childList: true, subtree: true });
+
+    // Safety: ถ้า script โหลดแล้วพบว่าตอนนี้ body ไม่มีอยู่ -> สร้าง fallback ทันที
+    if (!document.body) {
+      // ถ้า body ยังไม่มี ให้สร้าง temp body เพื่อแนบ UI (บาง browser อาจไม่อนุญาต แต่เราพยายาม)
+      try {
+        const tempBody = document.createElement('body');
+        document.documentElement.appendChild(tempBody);
+      } catch (e) {
+        console.warn('ไม่สามารถสร้าง body ใหม่:', e);
+      }
+      encryptedMode = true;
+      document.documentElement.classList.add('encrypted');
+      setTimeout(createFallbackOverlay, 50); // เล็กน้อยให้ DOM settle
+    }
+
+    // ถ้าต้องการให้ main-content แสดงในกรณีที่ verified อยู่แล้ว
+    if (verified) showContent(false);
+
+    // ปิด observer เมื่าทำงานเสร็จตามเงื่อนไข (ไม่บังคับ แต่ลดการทำงาน)
+    // rootObserver.disconnect(); // อย่า disconnect แบบถาวร — เราต้องการจับการโจมตี/การลบในอนาคต
+  </script>
+</body>
+</html>
