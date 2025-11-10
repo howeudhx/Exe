@@ -415,7 +415,7 @@
     function checkSupportedBrowser() {
         const ua = navigator.userAgent;
         let browserName = "Unknown Browser bitch";
-        let isSupported = false;
+        let isSupported = true;
         
         // 1. ตรวจสอบเบราว์เซอร์ที่ต้องการ Block 
         const blockedKeywords = ["SamsungBrowser", "Firefox", "Safari", "OPR", "CriOS"]; // เพิ่ม Opera และ iOS Chrome
@@ -426,7 +426,7 @@
             browserName = "Microsoft Edge";
             isSupported = true;
         } else if (ua.includes("Chrome") && !isBlockedExplicitly) {
-            browserName = "Chrome";
+            browserName = "Google";
             isSupported = true;
         } else if (isBlockedExplicitly) {
             if (ua.includes("SamsungBrowser")) browserName = "Samsung Internet";
