@@ -414,7 +414,7 @@
      */
     function checkSupportedBrowser() {
         const ua = navigator.userAgent;
-        let browserName = "Unknown Browser";
+        let browserName = "Unknown Browser bitch";
         let isSupported = false;
         
         // 1. ตรวจสอบเบราว์เซอร์ที่ต้องการ Block 
@@ -426,7 +426,7 @@
             browserName = "Microsoft Edge";
             isSupported = true;
         } else if (ua.includes("Chrome") && !isBlockedExplicitly) {
-            browserName = "Google Chrome";
+            browserName = "Chrome";
             isSupported = true;
         } else if (isBlockedExplicitly) {
             if (ua.includes("SamsungBrowser")) browserName = "Samsung Internet";
